@@ -875,11 +875,11 @@ function updatePreviewCur() {
   circle.style.transform = '';
   circle.innerHTML = '';
   if (currentType === 'point') {
-    const fill = document.getElementById('curPtFillBar').style.background;
+    const fill = document.getElementById('curPtLineFillBar').style.background;
     const transp = parseInt(document.getElementById('curPtTransp').value);
     circle.style.background = fill;
-    circle.style.borderColor = document.getElementById('curPtLineFillBar').style.background;
-    circle.style.borderWidth = document.getElementById('curPtStroke').value + 'px';
+    circle.style.borderColor = fill;
+    circle.style.borderWidth = '2px';
     circle.style.borderRadius = '50%';
     circle.style.opacity = (100 - transp) / 100;
   } else if (currentType === 'line') {
