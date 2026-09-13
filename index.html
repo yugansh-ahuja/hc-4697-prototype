@@ -57,6 +57,9 @@
   .badge-li { background: #e8f5f3; color: #0d6a5e; }
   .badge-agol { background: #fff3e0; color: #e65100; }
   .badge-agp { background: #f3e5f5; color: #6a1b9a; }
+  /* ponytail: badges hidden by default — not in solution scope; toggle in sidebar for future reference */
+  .source-badge { display: none; }
+  .show-badges .source-badge { display: inline-block; }
 
   /* Dropdown */
   .dropdown { width: 100%; border: 1px solid #ccc; border-radius: 4px; padding: 7px 32px 7px 10px; font-size: 14px; color: #222; appearance: none; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center; cursor: pointer; }
@@ -188,14 +191,11 @@
     <button onclick="setType('polygon')">▬ Polygon Layer</button>
   </div>
   <div style="margin-top:16px;" class="info-box">
-    <h3>Override Source Badges</h3>
-    <div class="badge-row">
-      <span class="source-badge badge-li">LI Custom</span>
-      <span class="source-badge badge-agol">AGOL</span>
-      <span class="source-badge badge-agp">ArcGIS Pro</span>
-    </div>
-    <p style="margin-top:10px; font-size:12px; color:#666;">Badge shows which source each parameter comes from. "Revert" resets to next-lower source (LI→AGOL→ArcGIS Pro).</p>
-    <p style="margin-top:8px; font-size:12px; color:#666;">Panel icon updates live. Map updates on <strong>Save</strong> only.</p>
+    <p style="font-size:12px; color:#666;">Panel icon updates live. Map updates on <strong>Save</strong> only.</p>
+    <label style="display:flex;align-items:center;gap:6px;margin-top:10px;font-size:12px;color:#888;cursor:pointer;" title="Source value display removed from solution scope. Toggle for future reference only.">
+      <input type="checkbox" id="toggleBadges" onchange="document.getElementById('panel').classList.toggle('show-badges',this.checked)" style="accent-color:#0d6a5e;">
+      Show source badges <em>(future — not in scope)</em>
+    </label>
   </div>
 </div>
 
