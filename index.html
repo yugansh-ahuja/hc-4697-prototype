@@ -873,6 +873,10 @@ function updatePreviewCur() {
   const circle = document.getElementById('previewCircle');
   circle.className = 'preview-circle';
   circle.style.transform = '';
+  circle.style.display = '';
+  circle.style.alignItems = '';
+  circle.style.justifyContent = '';
+  circle.style.opacity = 1;
   circle.innerHTML = '';
   if (currentType === 'point') {
     const fill = document.getElementById('curPtLineFillBar').style.background;
@@ -939,6 +943,15 @@ function showSaved() {
   footer.innerHTML = '<div style="color:#0d6a5e;font-weight:600;font-size:13px;padding:4px 0;">✓ Styles saved — map updated</div>';
   setTimeout(() => { footer.innerHTML = orig; }, 1800);
 }
+
+// Wire ALL current-mode controls to updatePreviewCur via delegation
+['controls-point-cur','controls-line-cur','controls-polygon-cur'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener('input', updatePreviewCur);
+    el.addEventListener('change', updatePreviewCur);
+  }
+});
 
 // Init all sliders
 document.querySelectorAll('input[type=range]').forEach(el => updateSlider(el));
