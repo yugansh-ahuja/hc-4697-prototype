@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GIS Layer Control — Styling Prototype</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #e8ecef; display: flex; align-items: center; justify-content: center; min-height: 100vh; gap: 24px; flex-wrap: wrap; padding: 24px; }
+
+  /* Geometry switcher */
+  .switcher { display: flex; flex-direction: column; gap: 8px; }
+  .switcher label { font-size: 11px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: .5px; }
+  .switcher-btns { display: flex; flex-direction: column; gap: 6px; }
+  .switcher-btns button { padding: 8px 16px; border: 1px solid #ccc; background: #fff; border-radius: 6px; cursor: pointer; font-size: 13px; color: #333; text-align: left; }
+  .switcher-btns button.active { background: #0d6a5e; color: #fff; border-color: #0d6a5e; }
+
+  /* Panel */
+  .panel { width: 380px; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.18); }
+
+  /* Header */
+  .panel-header { background: #0d2d3a; color: #fff; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
+  .panel-header-title { font-size: 15px; font-weight: 600; }
+  .close-btn { background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; line-height: 1; padding: 2px; }
+
+  /* Layer info */
+  .layer-info { padding: 14px 16px 0; }
+  .layer-info-row { display: flex; align-items: flex-start; gap: 12px; }
+  .preview-circle { width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0; border: 2px solid rgba(0,0,0,.1); transition: background .15s, border-color .15s; position: relative; overflow: hidden; }
+  .preview-circle.line-preview { border-radius: 6px; display: flex; align-items: center; justify-content: center; background: #f5f5f5 !important; }
+  .preview-circle.polygon-preview { border-radius: 6px; }
+  .layer-name-field { flex: 1; }
+  .layer-name-field label { font-size: 12px; color: #555; display: block; margin-bottom: 4px; }
+  .layer-name-field label span { color: #c0392b; }
+  .layer-name-field input { width: 100%; border: 1px solid #ccc; border-radius: 4px; padding: 7px 10px; font-size: 14px; color: #222; }
+  .layer-name-field input:focus { outline: none; border-color: #0d6a5e; }
+  .checkboxes { display: flex; gap: 16px; padding: 10px 0 14px; }
+  .checkbox-item { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #333; cursor: pointer; }
+  .checkbox-item input[type=checkbox] { width: 16px; height: 16px; accent-color: #0d6a5e; cursor: pointer; }
+
+  /* Tabs */
+  .tabs { display: flex; border-bottom: 1px solid #e0e0e0; background: #fff; }
+  .tab { flex: 1; padding: 10px 4px; text-align: center; font-size: 13px; color: #666; cursor: pointer; border-bottom: 2px solid transparent; display: flex; align-items: center; justify-content: center; gap: 5px; transition: color .15s; }
+  .tab:hover { color: #0d6a5e; }
+  .tab.active { color: #0d6a5e; border-bottom-color: #0d6a5e; font-weight: 500; }
+  .tab-icon { font-size: 14px; }
+
+  /* Tab content */
+  .tab-content { padding: 16px; min-height: 340px; }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* Form row */
+  .form-row { margin-bottom: 14px; }
+  .form-row label { font-size: 12px; font-weight: 600; color: #333; display: block; margin-bottom: 5px; }
+  .form-row .source-badge { display: inline-block; font-size: 10px; font-weight: 500; padding: 1px 6px; border-radius: 10px; margin-left: 6px; vertical-align: middle; }
+  .badge-li { background: #e8f5f3; color: #0d6a5e; }
+  .badge-agol { background: #fff3e0; color: #e65100; }
+  .badge-agp { background: #f3e5f5; color: #6a1b9a; }
+
+  /* Dropdown */
+  .dropdown { width: 100%; border: 1px solid #ccc; border-radius: 4px; padding: 7px 32px 7px 10px; font-size: 14px; color: #222; appearance: none; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center; cursor: pointer; }
+  .dropdown:focus { outline: none; border-color: #0d6a5e; }
+
+  /* Color row */
+  .color-row { display: flex; align-items: center; gap: 8px; }
+  .color-swatch { width: 36px; height: 34px; border-radius: 4px; border: 1px solid #ccc; cursor: pointer; padding: 0; }
+  .color-swatch input[type=color] { width: 100%; height: 100%; border: none; padding: 0; cursor: pointer; background: none; }
+  .color-hex { flex: 1; border: 1px solid #ccc; border-radius: 4px; padding: 7px 10px; font-size: 13px; font-family: monospace; color: #333; }
+  .color-hex:focus { outline: none; border-color: #0d6a5e; }
+
+  /* Slider */
+  .slider-row { display: flex; align-items: center; gap: 10px; }
+  .slider-track { flex: 1; position: relative; }
+  input[type=range] { width: 100%; -webkit-appearance: none; height: 4px; border-radius: 2px; background: linear-gradient(to right, #0d6a5e var(--pct, 100%), #d0d0d0 var(--pct, 100%)); outline: none; cursor: pointer; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #0d6a5e; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
+  input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #0d6a5e; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
+  .slider-ticks { display: flex; justify-content: space-between; font-size: 10px; color: #999; margin-top: 2px; }
+  .slider-value { font-size: 13px; font-weight: 500; color: #333; min-width: 38px; text-align: right; }
+
+  /* Number input */
+  .num-input { width: 70px; border: 1px solid #ccc; border-radius: 4px; padding: 7px 8px; font-size: 14px; text-align: center; }
+  .num-input:focus { outline: none; border-color: #0d6a5e; }
+
+  /* Radio group (line style) */
+  .radio-group { display: flex; gap: 8px; }
+  .radio-group label { flex: 1; border: 1px solid #ccc; border-radius: 4px; padding: 7px 8px; text-align: center; cursor: pointer; font-size: 12px; color: #555; transition: all .15s; display: flex; align-items: center; justify-content: center; gap: 5px; }
+  .radio-group input[type=radio] { display: none; }
+  .radio-group input[type=radio]:checked + label { background: #0d6a5e; color: #fff; border-color: #0d6a5e; }
+  .line-preview-solid { width: 28px; height: 2px; background: currentColor; display: inline-block; }
+  .line-preview-dashed { width: 28px; height: 2px; border-top: 2px dashed currentColor; display: inline-block; }
+  .line-preview-dotted { width: 28px; height: 2px; border-top: 2px dotted currentColor; display: inline-block; }
+
+  /* Two col */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* Section divider */
+  .section-head { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #999; margin: 16px 0 10px; border-top: 1px solid #f0f0f0; padding-top: 12px; }
+  .section-head:first-child { margin-top: 0; border-top: none; padding-top: 0; }
+
+  /* Revert link */
+  .revert-link { font-size: 11px; color: #0d6a5e; cursor: pointer; text-decoration: underline; float: right; font-weight: 400; }
+  .revert-link:hover { color: #0a4f46; }
+
+  /* Icon picker */
+  .icon-picker { position: relative; }
+  .icon-picker-trigger { width: 100%; border: 1px solid #ccc; border-radius: 4px; padding: 7px 10px; font-size: 14px; color: #222; background: #fff; cursor: pointer; display: flex; align-items: center; gap: 8px; text-align: left; }
+  .icon-picker-trigger:focus { outline: none; border-color: #0d6a5e; }
+  .icon-picker-selected-glyph { font-size: 18px; width: 24px; text-align: center; }
+  .icon-picker-selected-label { flex: 1; }
+  .icon-picker-caret { font-size: 16px; color: #666; }
+  .icon-picker-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #fff; border: 1px solid #0d6a5e; border-radius: 4px; z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,.15); }
+  .icon-picker-search-wrap { padding: 8px; border-bottom: 1px solid #eee; }
+  .icon-picker-search { width: 100%; border: 1px solid #ccc; border-radius: 4px; padding: 6px 10px; font-size: 13px; }
+  .icon-picker-search:focus { outline: none; border-color: #0d6a5e; }
+  .icon-picker-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; padding: 8px; max-height: 180px; overflow-y: auto; }
+  .icon-picker-grid button { border: none; background: none; padding: 6px 4px; border-radius: 4px; cursor: pointer; font-size: 18px; line-height: 1; title: attr(data-label); transition: background .1s; }
+  .icon-picker-grid button:hover { background: #e8f5f3; }
+  .icon-picker-grid button.selected { background: #0d6a5e; }
+
+  /* Toggle */
+  .toggle-row { display: flex; align-items: center; gap: 10px; }
+  .toggle { width: 40px; height: 22px; background: #ccc; border-radius: 11px; cursor: pointer; position: relative; transition: background .2s; flex-shrink: 0; }
+  .toggle.on { background: #0d6a5e; }
+  .toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: transform .2s; }
+  .toggle.on::after { transform: translateX(18px); }
+  .toggle-label { font-size: 13px; color: #333; }
+
+  /* Footer */
+  .panel-footer { border-top: 1px solid #e8e8e8; padding: 12px 16px; display: flex; align-items: center; gap: 8px; }
+  .btn-save { background: #0d6a5e; color: #fff; border: none; border-radius: 4px; padding: 9px 20px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-save:hover { background: #0a5449; }
+  .btn-cancel { background: #fff; color: #333; border: 1px solid #ccc; border-radius: 4px; padding: 9px 16px; font-size: 14px; cursor: pointer; }
+  .btn-cancel:hover { border-color: #999; }
+  .btn-actions { margin-left: auto; background: #fff; color: #333; border: 1px solid #ccc; border-radius: 4px; padding: 9px 14px; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; position: relative; }
+  .btn-actions:hover { border-color: #999; }
+  .actions-menu { display: none; position: absolute; bottom: calc(100% + 4px); right: 0; background: #fff; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,.15); min-width: 180px; z-index: 200; }
+  .actions-menu.open { display: block; }
+  .actions-menu-item { padding: 10px 16px; font-size: 14px; color: #222; cursor: pointer; white-space: nowrap; }
+  .actions-menu-item:hover { background: #f5f5f5; }
+  .actions-menu-item.destructive { color: #c0392b; }
+  .actions-menu-divider { border: none; border-top: 1px solid #eee; margin: 2px 0; }
+
+  /* Line SVG preview */
+  .line-svg { display: block; }
+
+  /* Polygon canvas preview in circle */
+  .preview-polygon { border-radius: 6px !important; }
+
+  /* Info box */
+  .info-box { max-width: 340px; background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,.1); font-size: 13px; line-height: 1.6; color: #444; }
+  .info-box h3 { font-size: 14px; color: #0d2d3a; margin-bottom: 10px; }
+  .info-box ul { padding-left: 16px; }
+  .info-box li { margin-bottom: 4px; }
+  .info-box .badge-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+
+  /* Mode toggle */
+  .mode-toggle { display: flex; border: 1.5px solid #0d6a5e; border-radius: 6px; overflow: hidden; margin-bottom: 14px; }
+  .mode-btn { flex: 1; padding: 8px 10px; border: none; background: #fff; color: #0d6a5e; font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s; }
+  .mode-btn.active { background: #0d6a5e; color: #fff; }
+  .mode-label { font-size: 10px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+
+  /* Current-mode color field */
+  .cur-color-field { position: relative; height: 36px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; overflow: hidden; }
+  .cur-color-field .cur-color-bar { position: absolute; inset: 0; pointer-events: none; }
+  .cur-color-field input[type=color] { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+  .cur-color-caret { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); pointer-events: none; color: rgba(0,0,0,.35); font-size: 13px; }
+
+  /* Current-mode badge (stroke width value) */
+  .cur-badge { min-width: 24px; height: 24px; border-radius: 12px; background: #e0e0e0; color: #444; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 0 5px; }
+  /* Disabled state for current-mode controls */
+  .cur-disabled { opacity: 0.38; pointer-events: none; }
+  .cur-disabled label { color: #aaa; }
+</style>
+</head>
+<body>
+
+<div class="switcher">
+  <div class="mode-label">Mode</div>
+  <div class="mode-toggle">
+    <button class="mode-btn active" onclick="setMode('current')">Current</button>
+    <button class="mode-btn" onclick="setMode('new')">New</button>
+  </div>
+  <label>Geometry Type</label>
+  <div class="switcher-btns">
+    <button class="active" onclick="setType('point')">● Point Layer</button>
+    <button onclick="setType('line')">― Line Layer</button>
+    <button onclick="setType('polygon')">▬ Polygon Layer</button>
+  </div>
+  <div style="margin-top:16px;" class="info-box">
+    <h3>Override Source Badges</h3>
+    <div class="badge-row">
+      <span class="source-badge badge-li">LI Custom</span>
+      <span class="source-badge badge-agol">AGOL</span>
+      <span class="source-badge badge-agp">ArcGIS Pro</span>
+    </div>
+    <p style="margin-top:10px; font-size:12px; color:#666;">Badge shows which source each parameter comes from. "Revert" resets to next-lower source (LI→AGOL→ArcGIS Pro).</p>
+    <p style="margin-top:8px; font-size:12px; color:#666;">Panel icon updates live. Map updates on <strong>Save</strong> only.</p>
+  </div>
+</div>
+
+<div class="panel" id="panel">
+  <!-- Header -->
+  <div class="panel-header">
+    <span class="panel-header-title">GIS Layer Control</span>
+    <button class="close-btn">✕</button>
+  </div>
+
+  <!-- Layer info -->
+  <div class="layer-info">
+    <div class="layer-info-row">
+      <div class="preview-circle" id="previewCircle"></div>
+      <div class="layer-name-field">
+        <label>Layer name <span>*</span></label>
+        <input type="text" value="Addresses">
+      </div>
+    </div>
+    <div class="checkboxes">
+      <label class="checkbox-item"><input type="checkbox" checked> Layer Visible</label>
+      <label class="checkbox-item"><input type="checkbox" checked> Layer Selectable</label>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" onclick="setTab('styling')"><span class="tab-icon">✏️</span> Styling</div>
+    <div class="tab" onclick="setTab('labelling')"><span class="tab-icon">🏷</span> Labelling</div>
+    <div class="tab" onclick="setTab('advanced')"><span class="tab-icon">⚙️</span> Advanced</div>
+  </div>
+
+  <!-- Tab content -->
+  <div class="tab-content">
+
+    <!-- STYLING TAB -->
+    <div class="tab-pane active" id="tab-styling">
+
+      <!-- CURRENT POINT -->
+      <div id="controls-point-cur">
+        <div class="form-row">
+          <label>Line Fill</label>
+          <div class="cur-color-field" onclick="this.querySelector('input').click()">
+            <div class="cur-color-bar" id="curPtLineFillBar" style="background:#3b6fd4"></div>
+            <input type="color" value="#3b6fd4" oninput="document.getElementById('curPtLineFillBar').style.background=this.value;updatePreviewCur()">
+            <span class="cur-color-caret">▾</span>
+          </div>
+        </div>
+        <div class="form-row cur-disabled">
+          <label>Stroke width</label>
+          <div class="slider-row">
+            <input type="range" id="curPtStroke" min="1" max="10" value="1" style="flex:1" disabled>
+            <span class="cur-badge" id="curPtStrokeVal">1</span>
+          </div>
+        </div>
+        <div class="form-row cur-disabled">
+          <label>Fill color</label>
+          <div class="cur-color-field">
+            <div class="cur-color-bar" style="background:#fff"></div>
+            <span class="cur-color-caret">▾</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Icon</label>
+          <select class="dropdown" onchange="updatePreviewCur()">
+            <option>♪ Music note</option><option>📍 Pin</option><option>♥ Heart</option><option>★ Star</option>
+            <option>● Circle</option><option>■ Square</option><option>🔍 Search</option>
+            <option>⚠ Warning</option><option>⌂ Home</option><option>👤 Person</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Layer Transparency</label>
+          <div class="slider-track">
+            <input type="range" id="curPtTransp" min="0" max="100" value="0" style="width:100%" oninput="updateSlider(this.id);updatePreviewCur()">
+            <div class="slider-ticks"><span>0%</span><span>20%</span><span>40%</span><span>60%</span><span>80%</span><span>100%</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CURRENT LINE -->
+      <div id="controls-line-cur" style="display:none">
+        <div class="form-row">
+          <label>Line Fill</label>
+          <div class="cur-color-field" onclick="this.querySelector('input').click()">
+            <div class="cur-color-bar" id="curLnLineFillBar" style="background:#c8e000"></div>
+            <input type="color" value="#c8e000" oninput="document.getElementById('curLnLineFillBar').style.background=this.value">
+            <span class="cur-color-caret">▾</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Stroke width</label>
+          <div class="slider-row">
+            <input type="range" id="curLnStroke" min="1" max="10" value="3" style="flex:1" oninput="document.getElementById('curLnStrokeVal').textContent=this.value">
+            <span class="cur-badge" id="curLnStrokeVal">3</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Fill color</label>
+          <div class="cur-color-field" onclick="this.querySelector('input').click()">
+            <div class="cur-color-bar" id="curLnFillBar" style="background:#7c3aed"></div>
+            <input type="color" value="#7c3aed" oninput="document.getElementById('curLnFillBar').style.background=this.value">
+            <span class="cur-color-caret">▾</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Icon</label>
+          <select class="dropdown">
+            <option>📍 Pin</option><option>♥ Heart</option><option>★ Star</option>
+            <option>● Circle</option><option>■ Square</option><option>🔍 Search</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Layer Transparency</label>
+          <div class="slider-track">
+            <input type="range" id="curLnTransp" min="0" max="100" value="0" style="width:100%" oninput="updateSlider(this.id)">
+            <div class="slider-ticks"><span>0%</span><span>20%</span><span>40%</span><span>60%</span><span>80%</span><span>100%</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CURRENT POLYGON -->
+      <div id="controls-polygon-cur" style="display:none">
+        <div class="form-row">
+          <label>Line Fill</label>
+          <div class="cur-color-field" onclick="this.querySelector('input').click()">
+            <div class="cur-color-bar" id="curPolyLineFillBar" style="background:#fff"></div>
+            <input type="color" value="#ffffff" oninput="document.getElementById('curPolyLineFillBar').style.background=this.value">
+            <span class="cur-color-caret">▾</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Stroke width</label>
+          <div class="slider-row">
+            <input type="range" id="curPolyStroke" min="1" max="10" value="5" style="flex:1" oninput="document.getElementById('curPolyStrokeVal').textContent=this.value">
+            <span class="cur-badge" id="curPolyStrokeVal">5</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Fill color</label>
+          <div class="cur-color-field" onclick="this.querySelector('input').click()">
+            <div class="cur-color-bar" id="curPolyFillBar" style="background:#4db8a8"></div>
+            <input type="color" value="#4db8a8" oninput="document.getElementById('curPolyFillBar').style.background=this.value">
+            <span class="cur-color-caret">▾</span>
+          </div>
+        </div>
+        <div class="form-row cur-disabled">
+          <label>Icon</label>
+          <div class="cur-color-field" style="background:#f9f9f9">
+            <span class="cur-color-caret">▾</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Layer Transparency</label>
+          <div class="slider-track">
+            <input type="range" id="curPolyTransp" min="0" max="100" value="0" style="width:100%" oninput="updateSlider(this.id)">
+            <div class="slider-ticks"><span>0%</span><span>20%</span><span>40%</span><span>60%</span><span>80%</span><span>100%</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NEW POINT -->
+      <div id="controls-point" style="display:none">
+        <div class="section-head">Icon &amp; Color</div>
+
+        <div class="form-row">
+          <label>Fill Color <span class="source-badge badge-li">LI Custom</span> <span class="revert-link" onclick="revert('fillColor','#f5a623')">Revert</span></label>
+          <div class="color-row">
+            <div class="color-swatch"><input type="color" id="fillColor" value="#f5a623" oninput="syncColor('fillColor','fillColorHex');updatePreview()"></div>
+            <input class="color-hex" id="fillColorHex" value="#f5a623" oninput="syncHex('fillColorHex','fillColor');updatePreview()" maxlength="7">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label>Icon <span class="source-badge badge-li">LI Custom</span></label>
+          <div class="icon-picker" id="iconPicker">
+            <button type="button" class="icon-picker-trigger" onclick="toggleIconPicker()">
+              <span class="icon-picker-selected-glyph" id="iconGlyph">♥</span>
+              <span class="icon-picker-selected-label" id="iconLabel">Heart</span>
+              <span class="icon-picker-caret">&#8964;</span>
+            </button>
+            <div class="icon-picker-dropdown" id="iconDropdown" style="display:none">
+              <div class="icon-picker-search-wrap">
+                <input type="text" class="icon-picker-search" placeholder="Search icons" oninput="filterIcons(this.value)" id="iconSearch">
+              </div>
+              <div class="icon-picker-grid" id="iconGrid"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="form-row">
+            <label>Size (px) <span class="source-badge badge-agol">AGOL</span> <span class="revert-link" style="float:right" onclick="document.getElementById('pointSize').value=12;updateSlider('pointSize');updatePreview()">Revert</span></label>
+            <div class="slider-row">
+              <input type="range" id="pointSize" min="4" max="40" value="24" oninput="updateSlider(this.id);updatePreview()">
+              <span class="slider-value" id="pointSizeVal">24px</span>
+            </div>
+          </div>
+          <div class="form-row">
+            <label>Rotation (°) <span class="source-badge badge-li">LI Custom</span></label>
+            <div class="slider-row">
+              <input type="range" id="pointRotation" min="0" max="360" value="0" oninput="updateSlider(this.id);updatePreview()">
+              <span class="slider-value" id="pointRotationVal">0°</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-head">Outline</div>
+        <div class="two-col">
+          <div class="form-row">
+            <label>Outline Color <span class="source-badge badge-agp">ArcGIS Pro</span> <span class="revert-link" onclick="revert('outlineColor','#333333')">Revert</span></label>
+            <div class="color-row">
+              <div class="color-swatch"><input type="color" id="outlineColor" value="#333333" oninput="syncColor('outlineColor','outlineColorHex');updatePreview()"></div>
+              <input class="color-hex" id="outlineColorHex" value="#333333" oninput="syncHex('outlineColorHex','outlineColor');updatePreview()" maxlength="7">
+            </div>
+          </div>
+          <div class="form-row">
+            <label>Outline Width <span class="source-badge badge-agp">ArcGIS Pro</span></label>
+            <div class="slider-row">
+              <input type="range" id="outlineWidth" min="0" max="8" value="1" step="0.5" oninput="updateSlider(this.id);updatePreview()">
+              <span class="slider-value" id="outlineWidthVal">1px</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-head">Opacity &amp; Anchor</div>
+        <div class="form-row">
+          <label>Layer Opacity <span class="source-badge badge-li">LI Custom</span></label>
+          <div class="slider-row">
+            <div class="slider-track">
+              <input type="range" id="pointOpacity" min="0" max="100" value="100" oninput="updateSlider(this.id);updatePreview()">
+              <div class="slider-ticks"><span>0%</span><span>20%</span><span>40%</span><span>60%</span><span>80%</span><span>100%</span></div>
+            </div>
+            <span class="slider-value" id="pointOpacityVal">100%</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Anchor Point <span class="source-badge badge-li">LI Custom</span></label>
+          <select class="dropdown" id="anchorPoint">
+            <option value="center" selected>Center</option>
+            <option value="bottom">Bottom Center</option>
+            <option value="top">Top Center</option>
+            <option value="bottom-left">Bottom Left</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- LINE -->
+      <div id="controls-line" style="display:none">
+        <div class="section-head">Color &amp; Thickness</div>
+
+        <div class="form-row">
+          <label>Line Color <span class="source-badge badge-li">LI Custom</span> <span class="revert-link" onclick="revert('lineColor','#8e44ad')">Revert</span></label>
+          <div class="color-row">
+            <div class="color-swatch"><input type="color" id="lineColor" value="#8e44ad" oninput="syncColor('lineColor','lineColorHex');updatePreview()"></div>
+            <input class="color-hex" id="lineColorHex" value="#8e44ad" oninput="syncHex('lineColorHex','lineColor');updatePreview()" maxlength="7">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label>Thickness <span class="source-badge badge-agol">AGOL</span></label>
+          <div class="slider-row">
+            <input type="range" id="lineThickness" min="1" max="16" value="3" oninput="updateSlider(this.id);updatePreview()">
+            <span class="slider-value" id="lineThicknessVal">3px</span>
+          </div>
+        </div>
+
+        <div class="section-head">Line Style</div>
+        <div class="form-row">
+          <label>Style <span class="source-badge badge-agol">AGOL</span></label>
+          <div class="radio-group">
+            <input type="radio" name="lineStyle" id="ls-solid" value="solid" checked onchange="updatePreview()">
+            <label for="ls-solid"><span class="line-preview-solid"></span> Solid</label>
+            <input type="radio" name="lineStyle" id="ls-dashed" value="dashed" onchange="updatePreview()">
+            <label for="ls-dashed"><span class="line-preview-dashed"></span> Dashed</label>
+            <input type="radio" name="lineStyle" id="ls-dotted" value="dotted" onchange="updatePreview()">
+            <label for="ls-dotted"><span class="line-preview-dotted"></span> Dotted</label>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="form-row">
+            <label>Cap Style <span class="source-badge badge-agp">ArcGIS Pro</span></label>
+            <select class="dropdown" id="lineCap">
+              <option value="round" selected>Round</option>
+              <option value="butt">Butt</option>
+              <option value="square">Square</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Join Style <span class="source-badge badge-agp">ArcGIS Pro</span></label>
+            <select class="dropdown" id="lineJoin">
+              <option value="round" selected>Round</option>
+              <option value="miter">Miter</option>
+              <option value="bevel">Bevel</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="section-head">Opacity</div>
+        <div class="form-row">
+          <label>Line Opacity <span class="source-badge badge-li">LI Custom</span></label>
+          <div class="slider-row">
+            <div class="slider-track">
+              <input type="range" id="lineOpacity" min="0" max="100" value="100" oninput="updateSlider(this.id);updatePreview()">
+              <div class="slider-ticks"><span>0%</span><span>20%</span><span>40%</span><span>60%</span><span>80%</span><span>100%</span></div>
+            </div>
+            <span class="slider-value" id="lineOpacityVal">100%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- POLYGON -->
+      <div id="controls-polygon" style="display:none">
+        <div class="section-head">Fill</div>
+
+        <div class="form-row">
+          <label>Fill Color <span class="source-badge badge-li">LI Custom</span> <span class="revert-link" onclick="revert('polyFillColor','#27ae60')">Revert</span></label>
+          <div class="color-row">
+            <div class="color-swatch"><input type="color" id="polyFillColor" value="#27ae60" oninput="syncColor('polyFillColor','polyFillColorHex');updatePreview()"></div>
+            <input class="color-hex" id="polyFillColorHex" value="#27ae60" oninput="syncHex('polyFillColorHex','polyFillColor');updatePreview()" maxlength="7">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label>Fill Opacity <span class="source-badge badge-li">LI Custom</span></label>
+          <div class="slider-row">
+            <div class="slider-track">
+              <input type="range" id="polyFillOpacity" min="0" max="100" value="60" oninput="updateSlider(this.id);updatePreview()">
+              <div class="slider-ticks"><span>0%</span><span>20%</span><span>40%</span><span>60%</span><span>80%</span><span>100%</span></div>
+            </div>
+            <span class="slider-value" id="polyFillOpacityVal">60%</span>
+          </div>
+        </div>
+
+        <div class="section-head">Outline</div>
+
+        <div class="form-row">
+          <label>Outline Color <span class="source-badge badge-agol">AGOL</span> <span class="revert-link" onclick="revert('polyOutlineColor','#1a6e3a')">Revert</span></label>
+          <div class="color-row">
+            <div class="color-swatch"><input type="color" id="polyOutlineColor" value="#1a6e3a" oninput="syncColor('polyOutlineColor','polyOutlineColorHex');updatePreview()"></div>
+            <input class="color-hex" id="polyOutlineColorHex" value="#1a6e3a" oninput="syncHex('polyOutlineColorHex','polyOutlineColor');updatePreview()" maxlength="7">
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="form-row">
+            <label>Outline Thickness <span class="source-badge badge-agol">AGOL</span></label>
+            <div class="slider-row">
+              <input type="range" id="polyOutlineThickness" min="0" max="10" value="2" oninput="updateSlider(this.id);updatePreview()">
+              <span class="slider-value" id="polyOutlineThicknessVal">2px</span>
+            </div>
+          </div>
+          <div class="form-row">
+            <label>Outline Style <span class="source-badge badge-agol">AGOL</span></label>
+            <select class="dropdown" id="polyOutlineStyle" onchange="updatePreview()">
+              <option value="solid" selected>Solid</option>
+              <option value="dashed">Dashed</option>
+              <option value="dotted">Dotted</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label>Outline Opacity <span class="source-badge badge-agol">AGOL</span></label>
+          <div class="slider-row">
+            <div class="slider-track">
+              <input type="range" id="polyOutlineOpacity" min="0" max="100" value="100" oninput="updateSlider(this.id);updatePreview()">
+              <div class="slider-ticks"><span>0%</span><span>20%</span><span>40%</span><span>60%</span><span>80%</span><span>100%</span></div>
+            </div>
+            <span class="slider-value" id="polyOutlineOpacityVal">100%</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /tab-styling -->
+
+    <!-- LABELLING TAB -->
+    <div class="tab-pane" id="tab-labelling">
+      <div class="form-row" style="margin-top:4px;">
+        <div class="toggle-row">
+          <div class="toggle on" id="showLabelsToggle" onclick="this.classList.toggle('on')"></div>
+          <span class="toggle-label">Show Labels</span>
+        </div>
+      </div>
+      <div class="section-head">Labels</div>
+      <div class="form-row">
+        <label>Label Field</label>
+        <select class="dropdown"><option>Door Number</option><option>Asset ID</option><option>Name</option></select>
+      </div>
+      <div class="two-col">
+        <div class="form-row">
+          <label>Font</label>
+          <select class="dropdown"><option>Select Font</option><option>Arial</option><option>Helvetica</option><option>Open Sans</option></select>
+        </div>
+        <div class="form-row">
+          <label>Font Size</label>
+          <select class="dropdown"><option>Select Size</option><option>10px</option><option>12px</option><option>14px</option><option>16px</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Font Colour</label>
+        <div class="color-row">
+          <div class="color-swatch"><input type="color" value="#333333"></div>
+          <input class="color-hex" value="#333333" maxlength="7">
+        </div>
+      </div>
+    </div>
+
+    <!-- ADVANCED TAB -->
+    <div class="tab-pane" id="tab-advanced">
+      <div id="cluster-section" style="display:none">
+        <div class="form-row" style="margin-top:4px;">
+          <div class="toggle-row">
+            <div class="toggle on" id="clusterToggle" onclick="this.classList.toggle('on')"></div>
+            <span class="toggle-label">Enable Clustering</span>
+          </div>
+        </div>
+        <div class="section-head">Cluster Zoom Range</div>
+        <div class="form-row">
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <div class="slider-ticks" style="margin-bottom:2px"><span>1</span><span>3</span><span>5</span><span>7</span><span>9</span><span>11</span><span>13</span><span>15</span><span>17</span></div>
+            <input type="range" min="1" max="17" value="1" style="width:100%">
+          </div>
+        </div>
+        <div class="section-head">Cluster Opacity</div>
+        <div class="form-row">
+          <div class="slider-row">
+            <input type="range" id="clusterOpacity" min="0" max="100" value="100" style="flex:1" oninput="updateSlider(this.id)">
+            <span class="slider-value" id="clusterOpacityVal">100%</span>
+          </div>
+        </div>
+        <div class="section-head">Cluster Distance</div>
+        <div class="form-row">
+          <div class="slider-row">
+            <input type="range" id="clusterDist" min="0" max="100" value="40" style="flex:1" oninput="updateSlider(this.id)">
+            <span class="slider-value" id="clusterDistVal">40px</span>
+          </div>
+        </div>
+      </div>
+      <div class="section-head" style="margin-top:4px; border-top:none; padding-top:0">Layer Visibility Range</div>
+      <div class="form-row">
+        <div class="slider-row">
+          <input type="range" min="0" max="7" value="0" style="flex:1">
+          <input type="range" min="0" max="7" value="7" style="flex:1">
+        </div>
+        <div class="slider-ticks"><span>Global</span><span>Country</span><span>State</span><span>County</span><span>City</span><span>Street</span><span>Building</span><span>Room</span></div>
+      </div>
+    </div>
+
+  </div><!-- /tab-content -->
+
+  <!-- Footer -->
+  <div class="panel-footer">
+    <button class="btn-save" onclick="showSaved()">Save</button>
+    <button class="btn-cancel">Cancel</button>
+    <div style="margin-left:auto;position:relative">
+      <button class="btn-actions" onclick="toggleActionsMenu(this)">▲ Actions</button>
+      <div class="actions-menu" id="actionsMenu">
+        <div class="actions-menu-item" onclick="closeActionsMenu()">Restore to Default</div>
+        <hr class="actions-menu-divider">
+        <div class="actions-menu-item destructive" onclick="closeActionsMenu()">Remove Layer</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentType = 'point';
+let currentMode = 'current';
+
+function setMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach((b,i) => {
+    b.classList.toggle('active', ['current','new'][i] === mode);
+  });
+  setType(currentType);
+}
+
+function setType(type) {
+  currentType = type;
+  document.querySelectorAll('.switcher-btns button').forEach((b,i) => {
+    b.classList.toggle('active', ['point','line','polygon'][i] === type);
+  });
+  const isCur = currentMode === 'current';
+  document.getElementById('controls-point-cur').style.display   = (isCur  && type==='point')   ? '' : 'none';
+  document.getElementById('controls-line-cur').style.display    = (isCur  && type==='line')    ? '' : 'none';
+  document.getElementById('controls-polygon-cur').style.display = (isCur  && type==='polygon') ? '' : 'none';
+  document.getElementById('controls-point').style.display       = (!isCur && type==='point')   ? '' : 'none';
+  document.getElementById('controls-line').style.display        = (!isCur && type==='line')    ? '' : 'none';
+  document.getElementById('controls-polygon').style.display     = (!isCur && type==='polygon') ? '' : 'none';
+  // Clustering only for Point type
+  document.getElementById('cluster-section').style.display = type === 'point' ? '' : 'none';
+  updatePreview();
+}
+
+function setTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+}
+
+function syncColor(colorId, hexId) {
+  document.getElementById(hexId).value = document.getElementById(colorId).value;
+}
+
+function syncHex(hexId, colorId) {
+  const val = document.getElementById(hexId).value;
+  if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+    document.getElementById(colorId).value = val;
+    updatePreview();
+  }
+}
+
+// --- Icon picker ---
+const ICONS = [
+  {g:'♥',l:'Heart'},{g:'★',l:'Star'},{g:'☆',l:'Star outline'},{g:'●',l:'Circle'},
+  {g:'■',l:'Square'},{g:'◆',l:'Diamond'},{g:'▲',l:'Triangle'},{g:'✚',l:'Plus'},
+  {g:'✖',l:'Cross'},{g:'⚑',l:'Flag'},{g:'⌂',l:'Home'},{g:'⚙',l:'Settings'},
+  {g:'🔍',l:'Search'},{g:'✉',l:'Email'},{g:'🔔',l:'Bell'},{g:'⚡',l:'Lightning'},
+  {g:'💧',l:'Water'},{g:'📍',l:'Pin'},{g:'⚠',l:'Warning'},{g:'ℹ',l:'Info'},
+  {g:'✓',l:'Check'},{g:'🔧',l:'Wrench'},{g:'🔑',l:'Key'},{g:'👤',l:'Person'},
+  {g:'🏷',l:'Tag'},{g:'📊',l:'Chart'},{g:'🔒',l:'Lock'},{g:'📌',l:'Pushpin'},
+  {g:'✈',l:'Plane'},{g:'⛽',l:'Fuel'},{g:'🌳',l:'Tree'},{g:'🏥',l:'Hospital'},
+  {g:'🏫',l:'School'},{g:'🔄',l:'Refresh'},{g:'📷',l:'Camera'},{g:'🗑',l:'Trash'},
+  {g:'📢',l:'Broadcast'},{g:'🔗',l:'Link'},{g:'⚓',l:'Anchor'},{g:'🚩',l:'Marker'},
+];
+let selectedIcon = ICONS[0];
+
+function buildIconGrid(filter='') {
+  const grid = document.getElementById('iconGrid');
+  const filtered = filter ? ICONS.filter(i => i.l.toLowerCase().includes(filter.toLowerCase())) : ICONS;
+  grid.innerHTML = filtered.map(i =>
+    `<button type="button" title="${i.l}" data-glyph="${i.g}" data-label="${i.l}"
+      class="${i.g===selectedIcon.g?'selected':''}"
+      onclick="selectIcon('${i.g}','${i.l}')">${i.g}</button>`
+  ).join('');
+}
+
+function selectIcon(glyph, label) {
+  selectedIcon = {g: glyph, l: label};
+  document.getElementById('iconGlyph').textContent = glyph;
+  document.getElementById('iconLabel').textContent = label;
+  document.getElementById('iconDropdown').style.display = 'none';
+  buildIconGrid(document.getElementById('iconSearch').value);
+  updatePreview();
+}
+
+function toggleIconPicker() {
+  const dd = document.getElementById('iconDropdown');
+  if (dd.style.display === 'none') {
+    dd.style.display = 'block';
+    buildIconGrid();
+    document.getElementById('iconSearch').value = '';
+    document.getElementById('iconSearch').focus();
+  } else {
+    dd.style.display = 'none';
+  }
+}
+
+function filterIcons(val) { buildIconGrid(val); }
+
+document.addEventListener('click', e => {
+  if (!document.getElementById('iconPicker').contains(e.target))
+    document.getElementById('iconDropdown').style.display = 'none';
+});
+// --- end icon picker ---
+
+function updateSlider(id) {
+  const el = typeof id === 'string' ? document.getElementById(id) : id;
+  if (!el) return;
+  const pct = ((el.value - el.min) / (el.max - el.min) * 100).toFixed(1);
+  el.style.setProperty('--pct', pct + '%');
+  const valEl = document.getElementById(el.id + 'Val');
+  if (!valEl) return;
+  const isPercent = el.id.toLowerCase().includes('opacity');
+  const isDeg = el.id.toLowerCase().includes('rotation');
+  valEl.textContent = isPercent ? el.value + '%' : isDeg ? el.value + '°' : el.value + 'px';
+}
+
+function hexToRgba(hex, opacity) {
+  const r = parseInt(hex.slice(1,3), 16);
+  const g = parseInt(hex.slice(3,5), 16);
+  const b = parseInt(hex.slice(5,7), 16);
+  return `rgba(${r},${g},${b},${opacity/100})`;
+}
+
+function updatePreview() {
+  if (currentMode === 'current') { updatePreviewCur(); return; }
+  const circle = document.getElementById('previewCircle');
+  circle.className = 'preview-circle';
+
+  if (currentType === 'point') {
+    const fillColor = document.getElementById('fillColor').value;
+    const opacity = parseInt(document.getElementById('pointOpacity').value);
+    const outlineColor = document.getElementById('outlineColor').value;
+    const outlineWidth = parseFloat(document.getElementById('outlineWidth').value);
+    const size = parseInt(document.getElementById('pointSize').value);
+    const rotation = parseInt(document.getElementById('pointRotation').value);
+    const icon = selectedIcon ? selectedIcon.l.toLowerCase() : 'circle';
+
+    const scaleFactor = size / 24;
+    circle.style.background = hexToRgba(fillColor, opacity);
+    circle.style.borderColor = outlineColor;
+    circle.style.borderWidth = outlineWidth + 'px';
+    circle.style.transform = `rotate(${rotation}deg)`;
+
+    const geoShapes = ['circle','square','diamond','triangle','star','plus','cross'];
+    const isGeo = geoShapes.includes(icon);
+
+    circle.innerHTML = '';
+    if (!isGeo) {
+      // Non-geometric icon: show glyph centered in circle
+      circle.style.borderRadius = '50%';
+      circle.style.background = hexToRgba(fillColor, opacity);
+      circle.style.display = 'flex';
+      circle.style.alignItems = 'center';
+      circle.style.justifyContent = 'center';
+      circle.innerHTML = `<span style="font-size:22px;line-height:1">${selectedIcon.g}</span>`;
+    } else if (icon === 'square') {
+      circle.style.borderRadius = '4px';
+    } else if (icon === 'diamond') {
+      circle.style.borderRadius = '4px';
+      circle.style.transform = `rotate(${rotation + 45}deg)`;
+    } else if (icon === 'triangle') {
+      circle.innerHTML = `<div style="width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-bottom:22px solid ${hexToRgba(fillColor,opacity)};margin:8px auto 0;"></div>`;
+      circle.style.background = 'transparent';
+      circle.style.border = 'none';
+      circle.style.borderRadius = '0';
+    } else if (icon === 'star') {
+      circle.innerHTML = `<div style="font-size:22px;line-height:42px;text-align:center;color:${fillColor};filter:drop-shadow(0 0 1px ${outlineColor})">★</div>`;
+      circle.style.background = 'transparent';
+      circle.style.borderRadius = '50%';
+    } else if (icon === 'plus' || icon === 'cross') {
+      circle.innerHTML = `<span style="font-size:24px;line-height:42px;color:${fillColor}">${icon==='plus'?'✚':'✖'}</span>`;
+      circle.style.background = 'transparent';
+      circle.style.borderRadius = '50%';
+    } else {
+      circle.style.borderRadius = '50%';
+    }
+
+  } else if (currentType === 'line') {
+    const color = document.getElementById('lineColor').value;
+    const thickness = parseInt(document.getElementById('lineThickness').value);
+    const opacity = parseInt(document.getElementById('lineOpacity').value);
+    const style = document.querySelector('input[name="lineStyle"]:checked').value;
+
+    circle.style.borderRadius = '6px';
+    circle.style.background = '#f5f5f5';
+    circle.style.border = '1px solid #ddd';
+    circle.style.transform = '';
+
+    let dashArray = style === 'dashed' ? '6,4' : style === 'dotted' ? '2,3' : 'none';
+    circle.innerHTML = `<svg width="42" height="42" viewBox="0 0 42 42" class="line-svg">
+      <path d="M4 32 Q14 10 22 21 Q30 32 38 10" stroke="${color}" stroke-width="${Math.min(thickness,8)}" stroke-dasharray="${dashArray}" fill="none" stroke-opacity="${opacity/100}" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+
+  } else if (currentType === 'polygon') {
+    const fillColor = document.getElementById('polyFillColor').value;
+    const fillOpacity = parseInt(document.getElementById('polyFillOpacity').value);
+    const outlineColor = document.getElementById('polyOutlineColor').value;
+    const outlineThickness = parseInt(document.getElementById('polyOutlineThickness').value);
+    const outlineOpacity = parseInt(document.getElementById('polyOutlineOpacity').value);
+
+    circle.style.borderRadius = '6px';
+    circle.style.background = hexToRgba(fillColor, fillOpacity);
+    circle.style.borderColor = hexToRgba(outlineColor, outlineOpacity);
+    circle.style.borderWidth = Math.min(outlineThickness, 5) + 'px';
+    circle.style.transform = '';
+    circle.innerHTML = '';
+  }
+}
+
+function updatePreviewCur() {
+  const circle = document.getElementById('previewCircle');
+  circle.className = 'preview-circle';
+  circle.style.transform = '';
+  circle.innerHTML = '';
+  if (currentType === 'point') {
+    const fill = document.getElementById('curPtFillBar').style.background;
+    const transp = parseInt(document.getElementById('curPtTransp').value);
+    circle.style.background = fill;
+    circle.style.borderColor = document.getElementById('curPtLineFillBar').style.background;
+    circle.style.borderWidth = document.getElementById('curPtStroke').value + 'px';
+    circle.style.borderRadius = '50%';
+    circle.style.opacity = (100 - transp) / 100;
+  } else if (currentType === 'line') {
+    const color = document.getElementById('curLnLineFillBar').style.background;
+    const thickness = parseInt(document.getElementById('curLnStroke').value);
+    circle.style.borderRadius = '6px';
+    circle.style.background = '#f5f5f5';
+    circle.style.border = '1px solid #ddd';
+    circle.style.opacity = 1;
+    circle.innerHTML = `<svg width="42" height="42" viewBox="0 0 42 42"><path d="M4 32 Q14 10 22 21 Q30 32 38 10" stroke="${color}" stroke-width="${Math.min(thickness,8)}" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  } else if (currentType === 'polygon') {
+    const fill = document.getElementById('curPolyFillBar').style.background;
+    const outline = document.getElementById('curPolyLineFillBar').style.background;
+    const stroke = parseInt(document.getElementById('curPolyStroke').value);
+    circle.style.borderRadius = '6px';
+    circle.style.background = fill;
+    circle.style.borderColor = outline;
+    circle.style.borderWidth = Math.min(stroke, 5) + 'px';
+    circle.style.opacity = 1;
+  }
+}
+
+function revert(colorId, defaultVal) {
+  document.getElementById(colorId).value = defaultVal;
+  const hexId = colorId + 'Hex';
+  const hexEl = document.getElementById(hexId);
+  if (hexEl) hexEl.value = defaultVal;
+  updatePreview();
+}
+
+function toggleActionsMenu(btn) {
+  const menu = document.getElementById('actionsMenu');
+  menu.classList.toggle('open');
+  document.addEventListener('click', function handler(e) {
+    if (!btn.parentElement.contains(e.target)) {
+      menu.classList.remove('open');
+      document.removeEventListener('click', handler);
+    }
+  });
+}
+function closeActionsMenu() {
+  document.getElementById('actionsMenu').classList.remove('open');
+}
+
+function showSaved() {
+  const footer = document.querySelector('.panel-footer');
+  const orig = footer.innerHTML;
+  footer.innerHTML = '<div style="color:#0d6a5e;font-weight:600;font-size:13px;padding:4px 0;">✓ Styles saved — map updated</div>';
+  setTimeout(() => { footer.innerHTML = orig; }, 1800);
+}
+
+// Init all sliders
+document.querySelectorAll('input[type=range]').forEach(el => updateSlider(el));
+// Start in current mode — show current point controls
+setType('point');
+updatePreviewCur();
+</script>
+</body>
+</html>
