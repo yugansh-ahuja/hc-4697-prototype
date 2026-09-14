@@ -191,10 +191,14 @@
     <button onclick="setType('polygon')">▬ Polygon Layer</button>
   </div>
   <div style="margin-top:16px;" class="info-box">
-    <p style="font-size:12px; color:#666;">Panel icon updates live. Map updates on <strong>Save</strong> only.</p>
-    <label style="display:flex;align-items:center;gap:6px;margin-top:10px;font-size:12px;color:#888;cursor:pointer;" title="Source value display removed from solution scope. Toggle for future reference only.">
+    <p style="font-size:11px; font-weight:600; color:#888; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">Future — Not in Scope</p>
+    <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#666;cursor:pointer;" title="Source value display removed from solution scope. Toggle for future reference only.">
       <input type="checkbox" id="toggleBadges" onchange="document.getElementById('panel').classList.toggle('show-badges',this.checked)" style="accent-color:#0d6a5e;">
-      Show source badges <em>(future — not in scope)</em>
+      Panel icon updates live. Map updates on <strong>Save</strong> only.
+    </label>
+    <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:#666;cursor:pointer;" title="Per-parameter revert not in solution scope for this release.">
+      <input type="checkbox" id="togglePerParamRevert" style="accent-color:#0d6a5e;">
+      Per parameter revert
     </label>
   </div>
 </div>
