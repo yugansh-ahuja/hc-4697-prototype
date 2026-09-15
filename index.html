@@ -105,6 +105,9 @@
   .revert-link { display: none; font-size: 11px; color: #0d6a5e; cursor: pointer; text-decoration: underline; float: right; font-weight: 400; }
   .revert-link:hover { color: #0a4f46; }
   .show-revert .revert-link { display: inline; }
+  .hide-must .moscow-must { display: none; }
+  .hide-could .moscow-could { display: none; }
+  .hide-should .revert-link { display: none !important; }
 
   /* Icon picker */
   .icon-picker { position: relative; }
@@ -192,6 +195,21 @@
     <button onclick="setType('polygon')">▬ Polygon Layer</button>
   </div>
   <div style="margin-top:16px;" class="info-box">
+    <p style="font-size:11px; font-weight:600; color:#888; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">MoSCoW Filter</p>
+    <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#666;cursor:pointer;">
+      <input type="checkbox" id="toggleMust" checked onchange="document.getElementById('panel').classList.toggle('hide-must',!this.checked)" style="accent-color:#0d6a5e;">
+      Must
+    </label>
+    <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:#666;cursor:pointer;">
+      <input type="checkbox" id="toggleShould" checked onchange="document.getElementById('panel').classList.toggle('hide-should',!this.checked)" style="accent-color:#0d6a5e;">
+      Should
+    </label>
+    <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:#666;cursor:pointer;">
+      <input type="checkbox" id="toggleCould" checked onchange="document.getElementById('panel').classList.toggle('hide-could',!this.checked)" style="accent-color:#0d6a5e;">
+      Could
+    </label>
+  </div>
+  <div style="margin-top:10px;" class="info-box">
     <p style="font-size:11px; font-weight:600; color:#888; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">Future — Not in Scope</p>
     <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#666;cursor:pointer;" title="Source value display removed from solution scope. Toggle for future reference only.">
       <input type="checkbox" id="toggleBadges" onchange="document.getElementById('panel').classList.toggle('show-badges',this.checked)" style="accent-color:#0d6a5e;">
@@ -390,7 +408,7 @@
           </div>
         </div>
 
-        <div class="two-col">
+        <div class="two-col moscow-must">
           <div class="form-row">
             <label>Size (px) <span class="source-badge badge-agol">AGOL</span> <span class="revert-link" style="float:right" onclick="document.getElementById('pointSize').value=12;updateSlider('pointSize');updatePreview()">Revert</span></label>
             <div class="slider-row">
@@ -407,8 +425,8 @@
           </div>
         </div>
 
-        <div class="section-head">Outline</div>
-        <div class="two-col">
+        <div class="section-head moscow-must">Outline</div>
+        <div class="two-col moscow-must">
           <div class="form-row">
             <label>Outline Color <span class="source-badge badge-agp">ArcGIS Pro</span> <span class="revert-link" onclick="revert('outlineColor','#333333')">Revert</span></label>
             <div class="color-row">
@@ -436,7 +454,7 @@
             <span class="slider-value" id="pointOpacityVal">100%</span>
           </div>
         </div>
-        <div class="form-row">
+        <div class="form-row moscow-could">
           <label>Anchor Point <span class="source-badge badge-li">LI Custom</span></label>
           <select class="dropdown" id="anchorPoint">
             <option value="center" selected>Center</option>
@@ -467,8 +485,8 @@
           </div>
         </div>
 
-        <div class="section-head">Line Style</div>
-        <div class="form-row">
+        <div class="section-head moscow-must">Line Style</div>
+        <div class="form-row moscow-must">
           <label>Style <span class="source-badge badge-agol">AGOL</span></label>
           <div class="radio-group">
             <input type="radio" name="lineStyle" id="ls-solid" value="solid" checked onchange="updatePreview()">
@@ -480,7 +498,7 @@
           </div>
         </div>
 
-        <div class="two-col">
+        <div class="two-col moscow-could">
           <div class="form-row">
             <label>Cap Style <span class="source-badge badge-agp">ArcGIS Pro</span></label>
             <select class="dropdown" id="lineCap">
@@ -524,7 +542,7 @@
           </div>
         </div>
 
-        <div class="form-row">
+        <div class="form-row moscow-must">
           <label>Fill Opacity <span class="source-badge badge-li">LI Custom</span></label>
           <div class="slider-row">
             <div class="slider-track">
@@ -537,7 +555,7 @@
 
         <div class="section-head">Outline</div>
 
-        <div class="form-row">
+        <div class="form-row moscow-must">
           <label>Outline Color <span class="source-badge badge-agol">AGOL</span> <span class="revert-link" onclick="revert('polyOutlineColor','#1a6e3a')">Revert</span></label>
           <div class="color-row">
             <div class="color-swatch"><input type="color" id="polyOutlineColor" value="#1a6e3a" oninput="syncColor('polyOutlineColor','polyOutlineColorHex');updatePreview()"></div>
@@ -546,14 +564,14 @@
         </div>
 
         <div class="two-col">
-          <div class="form-row">
+          <div class="form-row moscow-must">
             <label>Outline Thickness <span class="source-badge badge-agol">AGOL</span></label>
             <div class="slider-row">
               <input type="range" id="polyOutlineThickness" min="0" max="10" value="2" oninput="updateSlider(this.id);updatePreview()">
               <span class="slider-value" id="polyOutlineThicknessVal">2px</span>
             </div>
           </div>
-          <div class="form-row">
+          <div class="form-row moscow-could">
             <label>Outline Style <span class="source-badge badge-agol">AGOL</span></label>
             <select class="dropdown" id="polyOutlineStyle" onchange="updatePreview()">
               <option value="solid" selected>Solid</option>
@@ -563,7 +581,7 @@
           </div>
         </div>
 
-        <div class="form-row">
+        <div class="form-row moscow-could">
           <label>Outline Opacity <span class="source-badge badge-agol">AGOL</span></label>
           <div class="slider-row">
             <div class="slider-track">
