@@ -102,8 +102,9 @@
   .section-head:first-child { margin-top: 0; border-top: none; padding-top: 0; }
 
   /* Revert link */
-  .revert-link { font-size: 11px; color: #0d6a5e; cursor: pointer; text-decoration: underline; float: right; font-weight: 400; }
+  .revert-link { display: none; font-size: 11px; color: #0d6a5e; cursor: pointer; text-decoration: underline; float: right; font-weight: 400; }
   .revert-link:hover { color: #0a4f46; }
+  .show-revert .revert-link { display: inline; }
 
   /* Icon picker */
   .icon-picker { position: relative; }
@@ -197,7 +198,7 @@
       Panel icon updates live. Map updates on <strong>Save</strong> only.
     </label>
     <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:#666;cursor:pointer;" title="Per-parameter revert not in solution scope for this release.">
-      <input type="checkbox" id="togglePerParamRevert" style="accent-color:#0d6a5e;">
+      <input type="checkbox" id="togglePerParamRevert" onchange="document.getElementById('panel').classList.toggle('show-revert',this.checked)" style="accent-color:#0d6a5e;">
       Per parameter revert
     </label>
   </div>
